@@ -14,7 +14,7 @@ To find available bandwidths from master.m3u8:
 m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8
 ```
 
-To download *all* media m3u8 files and its related segments:
+To download *all* media m3u8 files and its related segments with a provided bandwidth:
 ```sh
 m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8 --bandwidth 12345
 ```
