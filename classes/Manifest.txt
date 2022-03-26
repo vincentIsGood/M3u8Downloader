@@ -1,0 +1,2 @@
+Main-class: com.vincentcodes.m3u8.Main
+
