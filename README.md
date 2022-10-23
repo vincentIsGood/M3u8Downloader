@@ -24,21 +24,7 @@ To download a media m3u8 with its segment files:
 m3u8downloader-vX.Y.Z.jar --outfolder output/ http://127.0.0.1/media.m3u8
 ```
 
-## Currently Unfixed Bug
-If you use `outfolder` option and you would like to use a local m3u8 file to download its remote segment files. You are required to create the `outfolder` yourself and move the m3u8 to the `outfolder`.
+## Fixed bug
+If you wanted to use `outfolder` option and you would like to use a local m3u8 file to download its remote segment files. You were required to create the `outfolder` yourself and move the m3u8 to the `outfolder`.
 
-For example:
-```sh
-# Create output folder manually
-mkdir output/
-# Then move local media.m3u8 to the output folder
-mv ./media.m3u8 ./output/
-m3u8downloader-vX.Y.Z.jar --outfolder output/ media.m3u8
-```
-
-Another workaround:
-```sh
-m3u8downloader-vX.Y.Z.jar --outfolder output/ ../media.m3u8
-```
-
-Hopefully this bug will be fixed very soon.
+This bug is fixed.

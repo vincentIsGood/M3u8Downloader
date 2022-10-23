@@ -1,55 +1,138 @@
 package com.vincentcodes.m3u8;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.vincentcodes.util.commandline.Command;
 import com.vincentcodes.util.commandline.CommandLineParser;
 import com.vincentcodes.util.commandline.ParserConfig;
 
 public class Main {
+    // public static void main(String[] args) {
+    //     MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/media0/media.m3u8", "others/tests");
+    //     mediaDownloader.downloadAndParse();
+    //     mediaDownloader.findResources();
+    //     mediaDownloader.downloadAllResources();
+    //     mediaDownloader.generateLocalMedia();
+    //     mediaDownloader.writeToFile();
+    //     // MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/master.m3u8", "others/tests");
+    //     // // MasterDownloader masterDownloader = new MasterDownloader("others/tests/master.m3u8", "others/tests");
+    //     // MasterPlaylist master = masterDownloader.downloadAndParse();
+    //     // System.out.println(master.getAvailableBandwidths());
+    //     // System.out.println(master.getAvailableGroupIds());
+    //     // List<MediaDownloader> mediaDownloaders = masterDownloader.findResources("group_name1", null, 141226, 542726);
+    //     // System.out.println(mediaDownloaders);
+    //     // for(MediaDownloader downloader : mediaDownloaders){
+    //     //     downloader.downloadAndParse();
+    //     //     downloader.findResources();
+    //     //     downloader.downloadOne();
+    //     //     // downloader.downloadAllResources();
+    //     //     downloader.generateLocalMedia();
+    //     //     // downloader.writeToFile();
+    //     // }
+    //     // masterDownloader.generateLocalMaster("group_name1", null, 141226, 542726);
+    //     // // masterDownloader.writeToFile();
+    // }
     public static void main(String[] args) {
-        // TODO: outfolder bug (involving local files)
+        handleArgs(args);
+        MediaDownloader.stopExecutor();
+    }
 
+    private static void handleArgs(String[] args){
         ParserConfig config = new ParserConfig();
         config.addOption("--help", true, "show this help");
         config.addOption("--master", true, "The m3u8 file you are inputing in is a master playlist");
         config.addOption("--outfolder", false, "Set output folder to this location. If url is a local file, then the m3u8 file MUST locate INSIDE the outfolder");
-        config.addOption("--bandwidth", false, "Set the bandwidth to start downloading media playlists from master playlist");
+        config.addOption("-o", false, "alias for '--outfolder'");
+        config.addOption("--bandwidth", false, "Set the bandwidth to start downloading media playlists from master playlist, use ',' to separate multiple bandwidths you wanna select (eg. -b 123,324)");
         config.addOption("-b", false, "alias for '--bandwidth'");
+        config.addOption("--audioid", false, "Use audioId to narrow down the search result of variant streams");
+        config.addOption("-aid", false, "alias for '--audioid'");
+        config.addOption("--videoid", false, "Use videoId to narrow down the search result of variant streams");
+        config.addOption("-vid", false, "alias for '--videoid'");
+        config.addOption("--progressive", true, "download one ts file from each media at a time.");
+        config.addOption("--threads", false, "set number of threads to be used, default = 1.");
+
         CommandLineParser parser = new CommandLineParser(config);
         Command cmd = parser.parse(args);
-        
+
         if(cmd.hasOption("--help") || cmd.getParameters().size() == 0){
             printhelp(config);
+            return;
         }
 
         String url = cmd.getParameter(0);
-        String outfolder = cmd.getOptionValue("--outfolder");
-        int bandwidth = -1;
+        String outfolder;
+        int[] bandwidth = null;
+        String audioId;
+        String videoId;
+
+        if((outfolder = cmd.getOptionValue("--outfolder")) != null
+        || (outfolder = cmd.getOptionValue("-o")) != null);
+        if(outfolder == null) outfolder = "./";
         
-        if(cmd.getOptionValue("--bandwidth") != null)
-            bandwidth = Integer.parseInt(cmd.getOptionValue("--bandwidth"));
-        else if(cmd.getOptionValue("-b") != null)
-            bandwidth = Integer.parseInt(cmd.getOptionValue("-b"));
+        String optionValue;
+        if((optionValue = cmd.getOptionValue("--bandwidth")) != null
+        || (optionValue = cmd.getOptionValue("-b")) != null){
+            if(optionValue.contains(","))
+                bandwidth = Stream.of(optionValue.split(",")).mapToInt(Integer::parseInt).toArray();
+            else bandwidth = new int[]{Integer.parseInt(optionValue)};
+        }
         
-        if(outfolder == null)
-            outfolder = "";
+        if((audioId = cmd.getOptionValue("--audioid")) != null
+        || (audioId = cmd.getOptionValue("-aid")) != null);
+        
+        if((videoId = cmd.getOptionValue("--videoid")) != null
+        || (videoId = cmd.getOptionValue("-vid")) != null);
+
+        if(cmd.hasOption("--threads")) 
+            MediaDownloader.NUM_THREADS = Integer.parseInt(cmd.getOptionValue("--threads"));
+        
         if(cmd.hasOption("--master")){
-            if(bandwidth == -1){
-                MasterPlaylist master = M3u8Downloader.master(url, outfolder);
-                List<Integer> sorted = master.getAvailableBandwidths().stream().sorted().collect(Collectors.toList());
-                System.out.println("Available bandwidths: " + sorted);
+            MasterDownloader masterDownloader = new MasterDownloader(url, outfolder);
+            MasterPlaylist master = masterDownloader.downloadAndParse();
+            if(bandwidth == null){
+                System.out.println("Available bandwidths: " + master.getAvailableBandwidths());
+                System.out.println("Available GroupIds: " + master.getAvailableGroupIds());
                 return;
             }
-            M3u8Downloader.master(url, outfolder, bandwidth);
+            masterDownloader.generateLocalMaster(audioId, videoId, bandwidth);
+            masterDownloader.writeToFile();
+            List<MediaDownloader> downloaders = masterDownloader.findResources(audioId, videoId, bandwidth);
+            if(cmd.hasOption("--progressive")){
+                for(MediaDownloader downloader : downloaders){
+                    downloader.downloadAndParse();
+                    downloader.findResources();
+                }
+                while(downloaders.stream().anyMatch(downloader -> downloader.hasFilesInQueue())){
+                    downloaders.forEach(downloader -> downloader.downloadOne());
+                }
+                downloaders.forEach(media -> media.waitUntilAllDownloaded());
+                for(MediaDownloader downloader : downloaders){
+                    downloader.writeToFile(downloader.generateLocalMedia());
+                }
+                return;
+            }
+            for(MediaDownloader downloader : downloaders){
+                downloader.downloadAndParse();
+                downloader.findResources();
+                downloader.downloadAllResources();
+                downloader.waitUntilAllDownloaded();
+                downloader.writeToFile(downloader.generateLocalMedia());
+            }
             return;
         }
-        M3u8Downloader.media(url, outfolder);
+        MediaDownloader downloader = new MediaDownloader(url, outfolder);
+        downloader.downloadAndParse();
+        downloader.findResources();
+        downloader.downloadAllResources();
+        downloader.waitUntilAllDownloaded();
+        downloader.writeToFile(downloader.generateLocalMedia());
     }
 
     private static void printhelp(ParserConfig config){
         System.out.println("m3u8downloader: help menu");
+        System.out.println("Usage m3u8downloader [options] <url / file>");
         System.out.println(config.getOptionsHelpString());
         System.exit(0);
     }

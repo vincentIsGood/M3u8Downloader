@@ -1,3 +1,5 @@
 others
 classes/com
 lib/com
+
+*.jar
