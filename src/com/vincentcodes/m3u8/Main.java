@@ -120,6 +120,7 @@ public class Main {
                 downloader.waitUntilAllDownloaded();
                 downloader.writeToFile(downloader.generateLocalMedia());
             }
+            System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
             return;
         }
         MediaDownloader downloader = new MediaDownloader(url, outfolder);
@@ -128,6 +129,7 @@ public class Main {
         downloader.downloadAllResources();
         downloader.waitUntilAllDownloaded();
         downloader.writeToFile(downloader.generateLocalMedia());
+        System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
     }
 
     private static void printhelp(ParserConfig config){

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,11 +44,16 @@ public class MediaDownloader {
 
     private String baseUrl = "";
     private String url;
+    private String urlDirPath; // "example/file.txt" -> "example/"
     private String outfolder;
     private MediaPlaylist media;
     private MediaPlaylist localMedia;
 
+    /**
+     * finalPath is a term used to denote "remote download path / link"
+     */
     private Deque<String> finalPaths; // queue used to enable pause, resume download
+    private Map<String, String> finalPathsToFilename;
     private int totalFilesNeeded = 0;
     private int noFilesDownloaded = 0;
     private int tasksSubmitted = 0;
@@ -61,9 +67,11 @@ public class MediaDownloader {
         initExecutor();
 
         this.url = url;
+        this.urlDirPath = DownloadUtils.getPathExcludeName(this.url) + "/";
         if(DownloadUtils.isAbsolute(url)) baseUrl = DownloadUtils.getBaseUrl(url);
         this.outfolder = DownloadUtils.createFolder(outfolder);
         finalPaths = new ArrayDeque<>();
+        finalPathsToFilename = new HashMap<>();
 
         lock = new ReentrantLock();
         doneDownloadNotif = lock.newCondition();
@@ -76,9 +84,12 @@ public class MediaDownloader {
         String m3u8Content;
         if(DownloadUtils.isLocalFile(url)){
             m3u8Content = new String(DownloadUtils.readLocalFile(url));
-        }else m3u8Content = new String(DownloadUtils.downloadNoDuplicate(url, baseUrl, outfolder, true));
+        }else m3u8Content = new String(DownloadUtils.downloadNoDuplicate(url, baseUrl, outfolder,  null, true));
         System.out.println("[*] Parsing m3u8 file...");
         media = MediaPlaylistParser.parse(m3u8Content);
+        if(media.segments.size() == 0){
+            System.out.println("[!] No segments found in this media m3u8 file. Is this a master file? (use '--master' if needed)");
+        }
         return media;
     }
 
@@ -87,12 +98,21 @@ public class MediaDownloader {
      */
     public void findResources(){
         // Expect abs path when baseUrl is empty
+        int counter = 0;
         System.out.println("[*] Number of keys to download: " + media.keys.size());
-        for(KeyTag key : media.keys.values())
-            finalPaths.add(DownloadUtils.isRemote(key.getURI())? key.getURI() : DownloadUtils.getFilenameFromUrl(key.getURI()));
+        for(KeyTag key : media.keys.values()){
+            String finalPath = DownloadUtils.isRemote(key.getURI())? key.getURI() : DownloadUtils.getFilenameFromUrl(key.getURI());
+            finalPaths.add(finalPath);
+        }
         System.out.println("[*] Number of segments to download: " + media.segments.size());
-        for(String seg : media.segments)
-            finalPaths.add(DownloadUtils.isRemote(seg)? seg : DownloadUtils.getFilenameFromPath(seg));
+        for(String seg : media.segments){
+            // String finalPath = DownloadUtils.isRemote(seg)? seg : DownloadUtils.getFilenameFromPath(seg);
+            // eg. /segment.ts == example.com/segment.ts
+            // eg.  segment.ts == example.com/media/segment.ts
+            String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
+            finalPaths.add(finalPath);
+            finalPathsToFilename.put(finalPath, (counter++) + "_" + DownloadUtils.getFilenameFromPath(seg));
+        }
         totalFilesNeeded = finalPaths.size();
     }
 
@@ -126,14 +146,15 @@ public class MediaDownloader {
             synchronized(finalPaths){
                 finalPath = finalPaths.pop();
             }
+            
             if(DownloadUtils.isRemote(finalPath)){
-                DownloadUtils.downloadFile(finalPath, outfolder);
-            }else DownloadUtils.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder);
-
+                DownloadUtils.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
+            }else DownloadUtils.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
+            
             lock.lock();
             try{
                 noFilesDownloaded++;
-                if(noFilesDownloaded == totalFilesNeeded){
+                if(noFilesDownloaded >= totalFilesNeeded){
                     doneDownloadNotif.signal();
                 }
             }finally{
@@ -158,10 +179,10 @@ public class MediaDownloader {
                     doneDownloadNotif.await();
                 }catch(InterruptedException e){}
             }
-            System.out.println("[*] For '"+ getOutPath() +"', progress: "+ noFilesDownloaded +"/"+ totalFilesNeeded + " ("+ (noFilesDownloaded/(double)totalFilesNeeded)*100 +"%)");
         }finally{
             lock.unlock();
         }
+        System.out.println("[*] For '"+ getOutPath() +"', progress: "+ noFilesDownloaded +"/"+ totalFilesNeeded + " ("+ (noFilesDownloaded/(double)totalFilesNeeded)*100 +"%)");
         return;
     }
 
@@ -181,8 +202,9 @@ public class MediaDownloader {
             newMedia.addKey(newKey);
         }
         for(int i = 0; i < media.segments.size(); i++){
-            String filename = DownloadUtils.getFilenameFromPath(media.segments.get(i));
-            newMedia.addSegment(filename, media.segDurations.get(i));
+            String seg = media.segments.get(i);
+            String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
+            newMedia.addSegment(finalPathsToFilename.get(finalPath), media.segDurations.get(i));
         }
         this.localMedia = newMedia;
         return newMedia;

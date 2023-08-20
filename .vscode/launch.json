@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "com.vincentcodes.m3u8.Main",
+            "projectName": "M3u8Downloader_dcec2313",
+            "args": "-o 20230813_hinatazaka \"https://proxy-25.sg1.dailymotion.com/sec(ehpNV9jmM-XDh5Y4selchtqa6AW6lAEhOjl-mUAu2oZtDY3G6rjrwCNxsPH2mUZYLWTYYvRuQDfM1GKGjhUCcqTj-hIy4TArV3o7GHrpTkI)/video/007/176/522671700_mp4_h264_aac_hd_5.m3u8\""
+        }
+    ]
+}

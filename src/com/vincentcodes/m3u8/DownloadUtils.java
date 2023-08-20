@@ -6,64 +6,58 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+// TODO: fix the dirty code
 public class DownloadUtils {
     public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36";
 
-    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder){
-        downloadNoDuplicateNoReturn(url, baseUrl, outFolder, false);
-    }
     public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, boolean openLocalFile){
-        if(isRemoteAndNotLocal(url, outFolder)){
-            if(isRemote(url)){
-                downloadFileNoReturn(url, outFolder);
-                return;
-            }else if(!isLocalFile(url, outFolder)){
-                if(baseUrl.isEmpty()){
-                    // Cannot fetch remote resource
-                    System.out.println("[-] Cannot download: '" + outFolder + url + "'");
-                    throw new IllegalStateException("You need to input an absolute remote url for the master m3u8 file. (eg. http://127.0.0.1/master.m3u8)");
-                }
-                downloadFileNoReturn(baseUrl + url, outFolder);
-                return;
-            }
-        }
-        System.out.println("[-] File exists locally: " + url);
+        downloadNoDuplicateNoReturn(url, baseUrl, outFolder, null, openLocalFile);
+    }
+    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename){
+        downloadNoDuplicateNoReturn(url, baseUrl, outFolder, givenFilename, false);
+    }
+    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
+        downloadNoDuplicate(url, baseUrl, outFolder, givenFilename, openLocalFile);
     }
 
-    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder){
-        return downloadNoDuplicate(url, baseUrl, outFolder, false);
+    public static byte[] downloadNoDuplicate(String url, String baseUrl, String givenFilename, String outFolder){
+        return downloadNoDuplicate(url, baseUrl, outFolder, givenFilename, false);
+    }
+    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, boolean openLocalFile){
+        return downloadNoDuplicate(url, baseUrl, outFolder, null, openLocalFile);
     }
     /**
      * @param url can be a local file
      * @param baseUrl base url is the full url path used to download a remote m3u8 file (comes from command line)
      */
-    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, boolean openLocalFile){
-        if(isRemoteAndNotLocal(url, outFolder)){
+    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
+        if(isRemoteAndNotLocal(url, outFolder, givenFilename)){
+            String localFilename = givenFilename == null? url : givenFilename;
             if(isRemote(url))
-                return downloadFile(url, outFolder);
-            else if(!isLocalFile(url, outFolder)){
-                if(baseUrl.isEmpty()){
+                return downloadFile(url, outFolder, givenFilename);
+            else if(!isLocalFile(localFilename, outFolder)){
+                if(baseUrl == null || baseUrl.isEmpty()){
                     // Cannot fetch remote resource
                     System.out.println("[-] Cannot download: '" + outFolder + url + "'");
                     throw new IllegalStateException("You need to input an absolute remote url for the master m3u8 file. (eg. http://127.0.0.1/master.m3u8)");
                 }
-                return downloadFile(baseUrl + url, outFolder);
+                return downloadFile(baseUrl + url, outFolder, givenFilename);
             }
         }
         System.out.println("[-] File exists locally: " + url);
         if(openLocalFile){
             if(isRemote(url)){
-                String filename = outFolder + getFilenameFromUrl(url);
+                String filename = outFolder + (givenFilename == null? getFilenameFromUrl(url) : givenFilename);
                 System.out.println("[*] Proceed to read local file: " + filename);
                 return readLocalFile(filename);
             }else if(isLocalFile(url, outFolder)){
-                String filename = outFolder + url;
+                String filename = outFolder + (givenFilename == null? url : givenFilename);
                 System.out.println("[*] Proceed to read local file: " + filename);
                 return readLocalFile(outFolder + url);
             }
@@ -77,24 +71,41 @@ public class DownloadUtils {
      * @return null if error occured
      */
     public static byte[] downloadFile(String url){
-        return downloadFile(url, "");
+        return downloadFile(url, "", null);
     }
     public static byte[] downloadFile(String url, String outFolder){
+        return downloadFile(url, outFolder, null);
+    }
+    public static byte[] downloadFile(String url, String outFolder, String givenFilename){
         byte[] fileContent = null;
         try{
             URL resourceUrl = new URL(url);
             String filename = getFilenameFromUrl(resourceUrl);
-            System.out.println("[+] Downloading file: '" + outFolder + filename + "'");
-            URLConnection conn = resourceUrl.openConnection();
+            if(givenFilename != null) filename = givenFilename;
+
+            File outputFile = new File(outFolder, filename);
+            System.out.println("[+] Downloading file: '" + outFolder + filename + "' (from "+ url +")");
+            HttpURLConnection conn = (HttpURLConnection)resourceUrl.openConnection();
             conn.setRequestProperty("User-Agent", USER_AGENT);
+
+            if(!outputFile.exists()){
+                outputFile.createNewFile();
+            }
+
+            if(conn.getResponseCode() != 200){
+                throw new IOException("Bad response code: " + conn.getResponseCode());
+            }
+
             try(BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
-            FileOutputStream fis = new FileOutputStream("./"+outFolder + filename)){
+            FileOutputStream fis = new FileOutputStream(outputFile)){
                 fileContent = in.readAllBytes();
                 fis.write(fileContent);
+                fis.flush();
             }
         }catch(MalformedURLException e){
             throw new IllegalArgumentException("Invalid url: " + url, e);
         }catch(IOException ex){
+            ex.printStackTrace();
             throw new UncheckedIOException("Cannot download file from " + url, ex);
         }
         return fileContent;
@@ -103,23 +114,10 @@ public class DownloadUtils {
         downloadFile(url, "");
     }
     public static void downloadFileNoReturn(String url, String outFolder){
-        try{
-            byte[] fileContent = null;
-            URL resourceUrl = new URL(url);
-            String filename = getFilenameFromUrl(resourceUrl);
-            System.out.println("[+] Downloading file: '" + outFolder + filename + "'");
-            URLConnection conn = resourceUrl.openConnection();
-            conn.setRequestProperty("User-Agent", USER_AGENT);
-            try(BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
-            FileOutputStream fis = new FileOutputStream("./"+outFolder + filename)){
-                fileContent = in.readAllBytes();
-                fis.write(fileContent);
-            }
-        }catch(MalformedURLException e){
-            throw new IllegalArgumentException("Invalid url: " + url, e);
-        }catch(IOException ex){
-            throw new UncheckedIOException("Cannot download file from " + url, ex);
-        }
+        downloadFile(url, outFolder, null);
+    }
+    public static void downloadFileNoReturn(String url, String outFolder, String givenFilename){
+        downloadFile(url, outFolder, givenFilename);
     }
 
     /**
@@ -150,9 +148,10 @@ public class DownloadUtils {
     }
 
     public static String getBaseUrl(String url){
-        if(url.contains("?"))
-            return url.substring(0, url.lastIndexOf('/', url.indexOf('?'))+1);
-        return url.substring(0, url.lastIndexOf('/')+1);
+        if(!url.startsWith("https://") && !url.startsWith("http://")){
+            return "";
+        }
+        return url.substring(0, url.indexOf('/', url.indexOf("//")+3)+1);
     }
 
     public static String getFilenameFromUrl(String url){
@@ -165,24 +164,39 @@ public class DownloadUtils {
         }
     }
     public static String getFilenameFromUrl(URL url){
-        String path = url.getPath();
-        return path.substring(path.lastIndexOf('/')+1);
+        return getFilenameFromPath(url.getPath());
     }
     public static String getFilenameFromPath(String path){
         if(path.lastIndexOf('/') == -1){
+            if(path.contains("?"))
+                return path.substring(0, path.indexOf('?'));
+            return path;
+        }
+
+        if(path.contains("?"))
+            return path.substring(path.lastIndexOf('/', path.indexOf('?'))+1, path.indexOf('?'));
+        return path.substring(path.lastIndexOf('/')+1);
+    }
+    public static String getPathExcludeName(String path){
+        if(path.lastIndexOf('/') == -1){
+            if(path.contains("?"))
+                return path.substring(0, path.indexOf('?'));
             return path;
         }
         if(path.contains("?"))
-            return path.substring(path.lastIndexOf('/', path.indexOf('?'))+1, path.lastIndexOf('?'));
-        return path.substring(path.lastIndexOf('/')+1);
+            return path.substring(0, path.lastIndexOf('/', path.indexOf('?')));
+        return path.substring(0, path.lastIndexOf('/'));
     }
 
     /**
      * @param url url or path/to/file
      */
     public static boolean isRemoteAndNotLocal(String url, String outFolder){
+        return isRemoteAndNotLocal(url, outFolder, null);
+    }
+    public static boolean isRemoteAndNotLocal(String url, String outFolder, String givenFilename){
         if(isRemote(url)){
-            String filename = getFilenameFromUrl(url);
+            String filename = givenFilename != null? givenFilename : getFilenameFromUrl(url);
             if(isLocalFile(filename, outFolder)){
                 return false;
             }
@@ -219,9 +233,9 @@ public class DownloadUtils {
     }
 
     public static boolean isLocalFile(String file){
-        return new File("./"+file).exists();
+        return new File(file).exists();
     }
     public static boolean isLocalFile(String file, String outFolder){
-        return new File("./"+outFolder+file).exists();
+        return new File(outFolder, file).exists();
     }
 }
