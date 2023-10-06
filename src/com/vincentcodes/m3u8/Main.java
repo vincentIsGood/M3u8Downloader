@@ -86,7 +86,7 @@ public class Main {
         if((videoId = cmd.getOptionValue("--videoid")) != null
         || (videoId = cmd.getOptionValue("-vid")) != null);
 
-        if(cmd.getOptionValue("--unique") != null)
+        if(cmd.hasOption("--unique"))
             MediaDownloader.UNIQUE_TS_NAMES = true;
 
         if(cmd.hasOption("--threads")) 
