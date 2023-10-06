@@ -18,6 +18,7 @@ import com.vincentcodes.m3u8.types.KeyTag;
 
 public class MediaDownloader {
     public static int NUM_THREADS = 1;
+    public static boolean UNIQUE_TS_NAMES = false;
     private static ExecutorService executorService;
 
     public static void initExecutor(){
@@ -110,8 +111,14 @@ public class MediaDownloader {
             // eg. /segment.ts == example.com/segment.ts
             // eg.  segment.ts == example.com/media/segment.ts
             String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
+            if(finalPaths.size() > 0 && finalPaths.peekLast().equals(finalPath)){
+                // Skip duplicating ts files
+                continue;
+            }
             finalPaths.add(finalPath);
-            finalPathsToFilename.put(finalPath, (counter++) + "_" + DownloadUtils.getFilenameFromPath(seg));
+            if(UNIQUE_TS_NAMES)
+                finalPathsToFilename.put(finalPath, (counter++) + "_" + DownloadUtils.getFilenameFromPath(seg));
+            else finalPathsToFilename.put(finalPath, DownloadUtils.getFilenameFromPath(seg));
         }
         totalFilesNeeded = finalPaths.size();
     }
@@ -201,10 +208,17 @@ public class MediaDownloader {
             KeyTag newKey = new KeyTag(attributes);
             newMedia.addKey(newKey);
         }
+        String previousPath = "";
         for(int i = 0; i < media.segments.size(); i++){
             String seg = media.segments.get(i);
             String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
-            newMedia.addSegment(finalPathsToFilename.get(finalPath), media.segDurations.get(i));
+            if(previousPath.equals(finalPath)){
+                // encounter duplicate ts file -> combine the duration ('cause they maybe bounded by BYTERANGE)
+                int lastIndex = newMedia.segDurations.size()-1;
+                newMedia.segDurations.set(lastIndex, newMedia.segDurations.get(lastIndex) + media.segDurations.get(i));
+            }else
+                newMedia.addSegment(finalPathsToFilename.get(finalPath), media.segDurations.get(i));
+            previousPath = finalPath;
         }
         this.localMedia = newMedia;
         return newMedia;

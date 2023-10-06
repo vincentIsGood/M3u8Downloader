@@ -226,10 +226,10 @@ public class DownloadUtils {
     }
 
     public static boolean isRemote(String url){
-        return url.startsWith("http://") || url.startsWith("https://");
+        return url.contains("://");
     }
     public static boolean isAbsolute(String url){
-        return url.startsWith("http://") || url.startsWith("https://");
+        return isRemote(url);
     }
 
     public static boolean isLocalFile(String file){

@@ -52,6 +52,7 @@ public class Main {
         config.addOption("-vid", false, "alias for '--videoid'");
         config.addOption("--progressive", true, "download one ts file from each media at a time.");
         config.addOption("--threads", false, "set number of threads to be used, default = 1.");
+        config.addOption("--unique", true, "unique names for ts files");
 
         CommandLineParser parser = new CommandLineParser(config);
         Command cmd = parser.parse(args);
@@ -84,6 +85,9 @@ public class Main {
         
         if((videoId = cmd.getOptionValue("--videoid")) != null
         || (videoId = cmd.getOptionValue("-vid")) != null);
+
+        if(cmd.getOptionValue("--unique") != null)
+            MediaDownloader.UNIQUE_TS_NAMES = true;
 
         if(cmd.hasOption("--threads")) 
             MediaDownloader.NUM_THREADS = Integer.parseInt(cmd.getOptionValue("--threads"));
