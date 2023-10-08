@@ -38,6 +38,11 @@ public class Main {
         MediaDownloader.stopExecutor();
     }
 
+    private static String outfolder;
+    private static int[] bandwidth = null;
+    private static String audioId;
+    private static String videoId;
+
     private static void handleArgs(String[] args){
         ParserConfig config = new ParserConfig();
         config.addOption("--help", true, "show this help");
@@ -53,6 +58,7 @@ public class Main {
         config.addOption("--progressive", true, "download one ts file from each media at a time.");
         config.addOption("--threads", false, "set number of threads to be used, default = 1.");
         config.addOption("--unique", true, "unique names for ts files");
+        // config.addOption("--live", true, "live download (this involves downloading the same m3u8 media file over and over again)");
 
         CommandLineParser parser = new CommandLineParser(config);
         Command cmd = parser.parse(args);
@@ -63,10 +69,6 @@ public class Main {
         }
 
         String url = cmd.getParameter(0);
-        String outfolder;
-        int[] bandwidth = null;
-        String audioId;
-        String videoId;
 
         if((outfolder = cmd.getOptionValue("--outfolder")) != null
         || (outfolder = cmd.getOptionValue("-o")) != null);
@@ -93,46 +95,54 @@ public class Main {
             MediaDownloader.NUM_THREADS = Integer.parseInt(cmd.getOptionValue("--threads"));
         
         if(cmd.hasOption("--master")){
-            MasterDownloader masterDownloader = new MasterDownloader(url, outfolder);
-            MasterPlaylist master = masterDownloader.downloadAndParse();
-            if(bandwidth == null){
-                System.out.println("Available bandwidths: " + master.getAvailableBandwidths());
-                System.out.println("Available GroupIds: " + master.getAvailableGroupIds());
-                return;
-            }
-            masterDownloader.generateLocalMaster(audioId, videoId, bandwidth);
-            masterDownloader.writeToFile();
-            List<MediaDownloader> downloaders = masterDownloader.findResources(audioId, videoId, bandwidth);
-            if(cmd.hasOption("--progressive")){
-                for(MediaDownloader downloader : downloaders){
-                    downloader.downloadAndParse();
-                    downloader.findResources();
-                }
-                while(downloaders.stream().anyMatch(downloader -> downloader.hasFilesInQueue())){
-                    downloaders.forEach(downloader -> downloader.downloadOne());
-                }
-                downloaders.forEach(media -> media.waitUntilAllDownloaded());
-                for(MediaDownloader downloader : downloaders){
-                    downloader.writeToFile(downloader.generateLocalMedia());
-                }
-                return;
-            }
-            for(MediaDownloader downloader : downloaders){
-                downloader.downloadAndParse();
-                downloader.findResources();
-                downloader.downloadAllResources();
-                downloader.waitUntilAllDownloaded();
-                downloader.writeToFile(downloader.generateLocalMedia());
-            }
-            System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
+            handleMasterM3u8(cmd, url);
             return;
         }
+        handleMediaM3u8(cmd, url);
+    }
+
+    private static void handleMediaM3u8(Command cmd, String url){
         MediaDownloader downloader = new MediaDownloader(url, outfolder);
         downloader.downloadAndParse();
         downloader.findResources();
         downloader.downloadAllResources();
         downloader.waitUntilAllDownloaded();
         downloader.writeToFile(downloader.generateLocalMedia());
+        System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
+    }
+
+    private static void handleMasterM3u8(Command cmd, String url){
+        MasterDownloader masterDownloader = new MasterDownloader(url, outfolder);
+        MasterPlaylist master = masterDownloader.downloadAndParse();
+        if(bandwidth == null){
+            System.out.println("Available bandwidths: " + master.getAvailableBandwidths());
+            System.out.println("Available GroupIds: " + master.getAvailableGroupIds());
+            return;
+        }
+        masterDownloader.generateLocalMaster(audioId, videoId, bandwidth);
+        masterDownloader.writeToFile();
+        List<MediaDownloader> downloaders = masterDownloader.findResources(audioId, videoId, bandwidth);
+        if(cmd.hasOption("--progressive")){
+            for(MediaDownloader downloader : downloaders){
+                downloader.downloadAndParse();
+                downloader.findResources();
+            }
+            while(downloaders.stream().anyMatch(downloader -> downloader.hasFilesInQueue())){
+                downloaders.forEach(downloader -> downloader.downloadOne());
+            }
+            downloaders.forEach(media -> media.waitUntilAllDownloaded());
+            for(MediaDownloader downloader : downloaders){
+                downloader.writeToFile(downloader.generateLocalMedia());
+            }
+            return;
+        }
+        for(MediaDownloader downloader : downloaders){
+            downloader.downloadAndParse();
+            downloader.findResources();
+            downloader.downloadAllResources();
+            downloader.waitUntilAllDownloaded();
+            downloader.writeToFile(downloader.generateLocalMedia());
+        }
         System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
     }
 
