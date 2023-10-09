@@ -8,32 +8,35 @@ import com.vincentcodes.util.commandline.CommandLineParser;
 import com.vincentcodes.util.commandline.ParserConfig;
 
 public class Main {
-    // public static void main(String[] args) {
-    //     MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/media0/media.m3u8", "others/tests");
-    //     mediaDownloader.downloadAndParse();
-    //     mediaDownloader.findResources();
-    //     mediaDownloader.downloadAllResources();
-    //     mediaDownloader.generateLocalMedia();
-    //     mediaDownloader.writeToFile();
-    //     // MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/master.m3u8", "others/tests");
-    //     // // MasterDownloader masterDownloader = new MasterDownloader("others/tests/master.m3u8", "others/tests");
-    //     // MasterPlaylist master = masterDownloader.downloadAndParse();
-    //     // System.out.println(master.getAvailableBandwidths());
-    //     // System.out.println(master.getAvailableGroupIds());
-    //     // List<MediaDownloader> mediaDownloaders = masterDownloader.findResources("group_name1", null, 141226, 542726);
-    //     // System.out.println(mediaDownloaders);
-    //     // for(MediaDownloader downloader : mediaDownloaders){
-    //     //     downloader.downloadAndParse();
-    //     //     downloader.findResources();
-    //     //     downloader.downloadOne();
-    //     //     // downloader.downloadAllResources();
-    //     //     downloader.generateLocalMedia();
-    //     //     // downloader.writeToFile();
-    //     // }
-    //     // masterDownloader.generateLocalMaster("group_name1", null, 141226, 542726);
-    //     // // masterDownloader.writeToFile();
-    // }
+    public static void test(String[] args) {
+        // MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/video1/media.m3u8", "others/test_results");
+        // mediaDownloader.downloadAndParse();
+        // mediaDownloader.findResources();
+        // mediaDownloader.downloadOne();
+        // mediaDownloader.downloadAllResources();
+        // mediaDownloader.generateLocalMedia();
+        // mediaDownloader.writeToFile();
+        
+        // MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/master.m3u8", "others/test_results");
+        // // MasterDownloader masterDownloader = new MasterDownloader("others/test_results/master.m3u8", "others/test_results");
+        // MasterPlaylist master = masterDownloader.downloadAndParse();
+        // System.out.println(master.getAvailableBandwidths());
+        // System.out.println(master.getAvailableGroupIds());
+        // List<MediaDownloader> mediaDownloaders = masterDownloader.findResources(null, null, 2200000, 401500);
+        // System.out.println(mediaDownloaders);
+        // for(MediaDownloader downloader : mediaDownloaders){
+        //     downloader.downloadAndParse();
+        //     downloader.findResources();
+        //     downloader.downloadOne();
+        //     // downloader.downloadAllResources();
+        //     downloader.generateLocalMedia();
+        //     downloader.writeToFile();
+        // }
+        // masterDownloader.generateLocalMaster("group_name1", null, 141226, 542726);
+        // masterDownloader.writeToFile();
+    }
     public static void main(String[] args) {
+        // test(args);
         handleArgs(args);
         MediaDownloader.stopExecutor();
     }

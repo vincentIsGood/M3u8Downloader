@@ -110,7 +110,7 @@ public class MediaDownloader {
             // String finalPath = DownloadUtils.isRemote(seg)? seg : DownloadUtils.getFilenameFromPath(seg);
             // eg. /segment.ts == example.com/segment.ts
             // eg.  segment.ts == example.com/media/segment.ts
-            String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
+            String finalPath = resolveFinalPath(urlDirPath, seg);
             if(finalPaths.size() > 0 && finalPaths.peekLast().equals(finalPath)){
                 // Skip duplicating ts files
                 continue;
@@ -211,7 +211,7 @@ public class MediaDownloader {
         String previousPath = "";
         for(int i = 0; i < media.segments.size(); i++){
             String seg = media.segments.get(i);
-            String finalPath = seg.startsWith("/") || DownloadUtils.isRemote(seg)? seg : urlDirPath + seg;
+            String finalPath = resolveFinalPath(urlDirPath, seg);
             if(previousPath.equals(finalPath)){
                 // encounter duplicate ts file -> combine the duration ('cause they maybe bounded by BYTERANGE)
                 int lastIndex = newMedia.segDurations.size()-1;
@@ -265,5 +265,22 @@ public class MediaDownloader {
 
     public String toString(){
         return String.format("{url: %s, outpath: %s}", getUrl(), getOutPath());
+    }
+
+    /**
+     * @return If it's a local file, it stays that way. 
+     * If it's a remote file, absolute path is returned
+     */
+    private static String resolveFinalPath(String urlDirPath, String seg){
+        // localfile
+        String finalPath = urlDirPath + seg;
+
+        // remote files
+        if(DownloadUtils.isRemote(seg)){
+            finalPath = seg;
+        }else if(seg.startsWith("/")){
+            finalPath = seg.substring(1);
+        }
+        return finalPath;
     }
 }

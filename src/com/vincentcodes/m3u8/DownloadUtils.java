@@ -37,8 +37,8 @@ public class DownloadUtils {
      * @param baseUrl base url is the full url path used to download a remote m3u8 file (comes from command line)
      */
     public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
-        if(isRemoteAndNotLocal(url, outFolder, givenFilename)){
-            String localFilename = givenFilename == null? url : givenFilename;
+        if(isRemoteAndNotLocal(url, baseUrl, outFolder, givenFilename)){
+            String localFilename = givenFilename != null? givenFilename : getFilenameFromUrl(url);
             if(isRemote(url))
                 return downloadFile(url, outFolder, givenFilename);
             else if(!isLocalFile(localFilename, outFolder)){
@@ -192,10 +192,10 @@ public class DownloadUtils {
      * @param url url or path/to/file
      */
     public static boolean isRemoteAndNotLocal(String url, String outFolder){
-        return isRemoteAndNotLocal(url, outFolder, null);
+        return isRemoteAndNotLocal(url, "", outFolder, null);
     }
-    public static boolean isRemoteAndNotLocal(String url, String outFolder, String givenFilename){
-        if(isRemote(url)){
+    public static boolean isRemoteAndNotLocal(String url, String baseUrl, String outFolder, String givenFilename){
+        if(isRemote(url) || isRemote(baseUrl + url)){
             String filename = givenFilename != null? givenFilename : getFilenameFromUrl(url);
             if(isLocalFile(filename, outFolder)){
                 return false;
