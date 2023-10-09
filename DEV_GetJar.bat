@@ -1,6 +1,6 @@
 @echo off
 
-set jarname=m3u8downloader-v3.1.1
+set jarname=m3u8downloader-v3.1.2
 set structure=com/vincentcodes/m3u8/*
 
 :::: with Manifest
