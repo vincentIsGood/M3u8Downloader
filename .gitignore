@@ -5,3 +5,4 @@ classes/com
 lib/com
 
 *.jar
+!lib/*.jar
