@@ -1,84 +1,41 @@
 package com.vincentcodes.m3u8;
 
 import java.util.List;
-import java.util.stream.Stream;
 
+import com.vincentcodes.util.commandline.ArgumentObjectMapper;
 import com.vincentcodes.util.commandline.Command;
-import com.vincentcodes.util.commandline.CommandLineParser;
-import com.vincentcodes.util.commandline.ParserConfig;
+import com.vincentcodes.util.commandline.ObjectMapperParseResult;
 
 public class Main {
     public static void main(String[] args) {
-        // test(args);
         handleArgs(args);
         MediaDownloader.stopExecutor();
     }
 
-    private static String outfolder;
-    private static int[] bandwidth = null;
-    private static String audioId;
-    private static String videoId;
-
     private static void handleArgs(String[] args){
-        ParserConfig config = new ParserConfig();
-        config.addOption("--help", true, "show this help");
-        config.addOption("--master", true, "The m3u8 file you are inputing in is a master playlist");
-        config.addOption("--outfolder", false, "Set output folder to this location. If url is a local file, then the m3u8 file MUST locate INSIDE the outfolder");
-        config.addOption("-o", false, "alias for '--outfolder'");
-        config.addOption("--bandwidth", false, "Set the bandwidth to start downloading media playlists from master playlist, use ',' to separate multiple bandwidths you wanna select (eg. -b 123,324)");
-        config.addOption("-b", false, "alias for '--bandwidth'");
-        config.addOption("--audioid", false, "Use audioId to narrow down the search result of variant streams");
-        config.addOption("-aid", false, "alias for '--audioid'");
-        config.addOption("--videoid", false, "Use videoId to narrow down the search result of variant streams");
-        config.addOption("-vid", false, "alias for '--videoid'");
-        config.addOption("--progressive", true, "download one ts file from each media at a time.");
-        config.addOption("--threads", false, "set number of threads to be used, default = 1.");
-        config.addOption("--unique", true, "unique names for ts files");
-        // config.addOption("--live", true, "live download (this involves downloading the same m3u8 media file over and over again)");
+        ObjectMapperParseResult<CmdLineOptions> parseResult = ArgumentObjectMapper.parseToObject(args, CmdLineOptions.class);
+        CmdLineOptions cmdOptions = parseResult.result;
+        Command cmd = parseResult.command;
 
-        CommandLineParser parser = new CommandLineParser(config);
-        Command cmd = parser.parse(args);
-
-        if(cmd.hasOption("--help") || cmd.getParameters().size() == 0){
-            printhelp(config);
+        if(cmdOptions.help || cmd.getParameters().size() == 0){
+            parseResult.simplePrintHelp("Usage m3u8downloader [options] <url / file>");
             return;
         }
 
         String url = cmd.getParameter(0);
 
-        if((outfolder = cmd.getOptionValue("--outfolder")) != null
-        || (outfolder = cmd.getOptionValue("-o")) != null);
-        if(outfolder == null) outfolder = "./";
+        MediaDownloader.UNIQUE_TS_NAMES = cmdOptions.unique;
+        MediaDownloader.NUM_THREADS = cmdOptions.threads;
         
-        String optionValue;
-        if((optionValue = cmd.getOptionValue("--bandwidth")) != null
-        || (optionValue = cmd.getOptionValue("-b")) != null){
-            if(optionValue.contains(","))
-                bandwidth = Stream.of(optionValue.split(",")).mapToInt(Integer::parseInt).toArray();
-            else bandwidth = new int[]{Integer.parseInt(optionValue)};
-        }
-        
-        if((audioId = cmd.getOptionValue("--audioid")) != null
-        || (audioId = cmd.getOptionValue("-aid")) != null);
-        
-        if((videoId = cmd.getOptionValue("--videoid")) != null
-        || (videoId = cmd.getOptionValue("-vid")) != null);
-
-        if(cmd.hasOption("--unique"))
-            MediaDownloader.UNIQUE_TS_NAMES = true;
-
-        if(cmd.hasOption("--threads")) 
-            MediaDownloader.NUM_THREADS = Integer.parseInt(cmd.getOptionValue("--threads"));
-        
-        if(cmd.hasOption("--master")){
-            handleMasterM3u8(cmd, url);
+        if(cmdOptions.master){
+            handleMasterM3u8(cmdOptions, url);
             return;
         }
-        handleMediaM3u8(cmd, url);
+        handleMediaM3u8(cmdOptions, url);
     }
 
-    private static void handleMediaM3u8(Command cmd, String url){
-        MediaDownloader downloader = new MediaDownloader(url, outfolder);
+    private static void handleMediaM3u8(CmdLineOptions cmdOptions, String url){
+        MediaDownloader downloader = new MediaDownloader(url, cmdOptions.outfolder);
         downloader.downloadAndParse();
         downloader.findResources();
         downloader.downloadAllResources();
@@ -87,9 +44,12 @@ public class Main {
         System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
     }
 
-    private static void handleMasterM3u8(Command cmd, String url){
-        MasterDownloader masterDownloader = new MasterDownloader(url, outfolder);
+    private static void handleMasterM3u8(CmdLineOptions cmdOptions, String url){
+        MasterDownloader masterDownloader = new MasterDownloader(url, cmdOptions.outfolder);
         MasterPlaylist master = masterDownloader.downloadAndParse();
+        int[] bandwidth = cmdOptions.bandwidth;
+        String audioId = cmdOptions.audioid;
+        String videoId = cmdOptions.videoid;
         if(bandwidth == null){
             System.out.println("Available bandwidths: " + master.getAvailableBandwidths());
             System.out.println("Available GroupIds: " + master.getAvailableGroupIds());
@@ -98,7 +58,7 @@ public class Main {
         masterDownloader.generateLocalMaster(audioId, videoId, bandwidth);
         masterDownloader.writeToFile();
         List<MediaDownloader> downloaders = masterDownloader.findResources(audioId, videoId, bandwidth);
-        if(cmd.hasOption("--progressive")){
+        if(cmdOptions.progressive){
             for(MediaDownloader downloader : downloaders){
                 downloader.downloadAndParse();
                 downloader.findResources();
@@ -119,13 +79,6 @@ public class Main {
             downloader.waitUntilAllDownloaded();
             downloader.writeToFile(downloader.generateLocalMedia());
         }
-        System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_media.m3u8 -c copy output.mp4");
-    }
-
-    private static void printhelp(ParserConfig config){
-        System.out.println("m3u8downloader: help menu");
-        System.out.println("Usage m3u8downloader [options] <url / file>");
-        System.out.println(config.getOptionsHelpString());
-        System.exit(0);
+        System.out.println("[*] Use ffmpeg to combine the ts files: ffmpeg -i local_master.m3u8 -c copy output.mp4");
     }
 }
