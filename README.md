@@ -2,7 +2,7 @@
 M3u8 Downloader does not only download m3u8 file. It downloads media m3u8 and its ts files as well.
 
 ```sh
-$ java -jar m3u8downloader-v3.0.0.jar --help
+$ java -jar m3u8downloader-v3.1.2.jar --help
 m3u8downloader: help menu
 Usage m3u8downloader [options] <url / file>
     --help         show this help
@@ -17,6 +17,7 @@ Usage m3u8downloader [options] <url / file>
     -vid           alias for '--videoid'
     --progressive  download one ts file from each media at a time.
     --threads      set number of threads to be used, default = 1.
+    --unique       unique names for ts files
 ```
 
 ## Manually Compile

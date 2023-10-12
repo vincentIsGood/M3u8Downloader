@@ -1,0 +1,25 @@
+name: M3u8 Functional Test - Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coping source to current directory
+        uses: actions/checkout@v3
+      - name: Setting up OpenJDK environment
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '16'
+      - name: Compiling sources
+        run: "javac --release 11 -encoding UTF-8 -d classes/ -cp src:lib/*: $(find src/ -type f -name '*.java')"
+      - name: Starting Basic Server
+        run: cd test_m3u8/sample_video && ./start_server.sh & cd ../..
+      - name: Testing application
+        run: "java -jar lib/junit-platform-console-standalone-1.10.0.jar -cp classes:lib: -cp $(find lib -type f -name '*.jar' | tr '\n' ' ' | tr ' ' ':') --select-package com.vincentcodes.tests"

@@ -37,6 +37,8 @@ public class MediaDownloader {
         } catch (InterruptedException ie) {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
+        } finally {
+            executorService = null;
         }
     }
 
