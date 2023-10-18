@@ -3,7 +3,7 @@
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_name1",NAME="audio_0",DEFAULT=YES,URI="video0/media.m3u8"
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_name2",NAME="audio_2",DEFAULT=YES,URI="video2/media.m3u8"
 #EXT-X-STREAM-INF:BANDWIDTH=141644,CODECS="mp4a.40.2",AUDIO="group_name1"
-http://127.0.0.1:1234/video0/media.m3u8
+http://127.0.0.1:1234/subdir/video0/media.m3u8
 
 #EXT-X-STREAM-INF:BANDWIDTH=543144,RESOLUTION=720x480,CODECS="avc1.64001e,mp4a.40.2",AUDIO="group_name1"
 video1/media.m3u8

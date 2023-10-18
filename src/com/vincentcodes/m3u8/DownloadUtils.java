@@ -33,10 +33,14 @@ public class DownloadUtils {
         return downloadNoDuplicate(url, baseUrl, outFolder, null, openLocalFile);
     }
     /**
-     * @param url can be a local file
-     * @param baseUrl base url is the full url path used to download a remote m3u8 file (comes from command line)
+     * @param url can be a local file 
+     * OR full remote path "http://127.0.0.1:1234/subdir/master.m3u8"
+     * OR partial path "asdasd.ts"
+     * OR partial abs path "/asdasd.ts"
+     * @param baseUrl (eg. "http://127.0.0.1:1234/subdir/master.m3u8" => base url "http://127.0.0.1:1234/")
      */
     public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
+        System.out.println("url: " + url);
         if(isRemoteAndNotLocal(url, baseUrl, outFolder, givenFilename)){
             String localFilename = givenFilename != null? givenFilename : getFilenameFromUrl(url);
             if(isRemote(url))
@@ -153,6 +157,16 @@ public class DownloadUtils {
         }
         return url.substring(0, url.indexOf('/', url.indexOf("//")+3)+1);
     }
+    /**
+     * asd/dsa.txt => "asd/"
+     * asd => ""
+     */
+    public static String getPathDir(String urlToFile){
+        if(!isAbsolute(urlToFile)) return "";
+        File file = new File(urlToFile.substring(urlToFile.indexOf('/', urlToFile.indexOf("//")+3)+1));
+        String parent = file.getParent() + "/";
+        return parent == null ? "" : parent;
+    }
 
     public static String getFilenameFromUrl(String url){
         try{
@@ -218,11 +232,11 @@ public class DownloadUtils {
         return folder;
     }
 
-    public static String toRemote(String path, String baseUrl){
+    public static String toRemote(String path, String baseUrl, String pathDirUrl){
         if(isRemote(path))
             return path;
         if(!baseUrl.isEmpty() && !baseUrl.endsWith("/")) baseUrl += "/";
-        return baseUrl + path;
+        return baseUrl + pathDirUrl + path;
     }
 
     public static boolean isRemote(String url){

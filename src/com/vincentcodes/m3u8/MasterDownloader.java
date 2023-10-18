@@ -17,6 +17,8 @@ import com.vincentcodes.m3u8.types.Stream;
 public class MasterDownloader {
 
     private String baseUrl = "";
+    private String pathDirUrl = "";
+
     private String url;
     private String outfolder;
     private MasterPlaylist master;
@@ -30,7 +32,10 @@ public class MasterDownloader {
      */
     public MasterDownloader(String url, String outfolder){
         this.url = url;
-        if(DownloadUtils.isAbsolute(url)) baseUrl = DownloadUtils.getBaseUrl(url);
+        if(DownloadUtils.isAbsolute(url)){
+            baseUrl = DownloadUtils.getBaseUrl(url);
+            pathDirUrl = DownloadUtils.getPathDir(url);
+        }
         this.outfolder = DownloadUtils.createFolder(outfolder);
     }
 
@@ -69,19 +74,19 @@ public class MasterDownloader {
         String remotePath;
         for(Stream stream : streams){
             if(stream.isIframeStream()){
-                remotePath = DownloadUtils.toRemote(stream.getURI(), baseUrl);
+                remotePath = DownloadUtils.toRemote(stream.getURI(), baseUrl, pathDirUrl);
                 if(!foundPlaylist.containsKey(remotePath))
                     foundPlaylist.put(remotePath, new MediaDownloader(remotePath, outfolder + getNextMediaFolderPath()));
                 continue;
             }
             if(stream.getAudioId() != null) relatedGroupIds.add(stream.getAudioId());
             if(stream.getVideoId() != null) relatedGroupIds.add(stream.getVideoId());
-            remotePath = DownloadUtils.toRemote(stream.playlist, baseUrl);
+            remotePath = DownloadUtils.toRemote(stream.playlist, baseUrl, pathDirUrl);
             if(!foundPlaylist.containsKey(remotePath))
                 foundPlaylist.put(remotePath, new MediaDownloader(remotePath, outfolder + getNextMediaFolderPath()));
         }
         for(Media media : master.allMedia){
-            remotePath = DownloadUtils.toRemote(media.getURI(), baseUrl);
+            remotePath = DownloadUtils.toRemote(media.getURI(), baseUrl, pathDirUrl);
             if(!relatedGroupIds.contains(media.getGroupId()) || foundPlaylist.containsKey(remotePath))
                 continue;
             foundPlaylist.put(remotePath, new MediaDownloader(remotePath, outfolder + getNextMediaFolderPath()));
@@ -111,19 +116,19 @@ public class MasterDownloader {
         for(Stream stream : streams){
             Map<String, String> attributes = new HashMap<>(stream.getAttributes());
             if(stream.isIframeStream()){
-                attributes.put("URI", putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(stream.getURI(), baseUrl), getNextMediaFolderPath() + "local_media.m3u8"));
+                attributes.put("URI", putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(stream.getURI(), baseUrl, pathDirUrl), getNextMediaFolderPath() + "local_media.m3u8"));
                 newMaster.addStream(new Stream(attributes, null));
                 continue;
             }
             if(stream.getAudioId() != null) relatedGroupIds.add(stream.getAudioId());
             if(stream.getVideoId() != null) relatedGroupIds.add(stream.getVideoId());
-            newMaster.addStream(new Stream(attributes, putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(stream.playlist, baseUrl), getNextMediaFolderPath() + "local_media.m3u8")));
+            newMaster.addStream(new Stream(attributes, putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(stream.playlist, baseUrl, pathDirUrl), getNextMediaFolderPath() + "local_media.m3u8")));
         }
         for(Media media : master.allMedia){
             if(!relatedGroupIds.contains(media.getGroupId()))
                 continue;
             Map<String, String> mediaAttributes = new HashMap<>(media.getAttributes());
-            mediaAttributes.put("URI", putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(media.getURI(), baseUrl), getNextMediaFolderPath() + "local_media.m3u8"));
+            mediaAttributes.put("URI", putIfAbscentGetOtherwise(foundPathToOutFileLoc, DownloadUtils.toRemote(media.getURI(), baseUrl, pathDirUrl), getNextMediaFolderPath() + "local_media.m3u8"));
             newMaster.addMedia(new Media(mediaAttributes));
         }
         this.localMaster = newMaster;

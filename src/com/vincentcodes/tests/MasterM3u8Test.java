@@ -22,7 +22,7 @@ import com.vincentcodes.m3u8.MediaDownloader;
 public class MasterM3u8Test {
     @Test
     public void grab_available_bandwidths(){
-        MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/master.m3u8", "test_m3u8/result_master_m3u8");
+        MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/subdir/master.m3u8", "test_m3u8/result_master_m3u8");
         MasterPlaylist master = masterDownloader.downloadAndParse();
         Set<Integer> availableBandwidths = master.getAvailableBandwidths();
         assertTrue(availableBandwidths.contains(141644));
@@ -35,7 +35,7 @@ public class MasterM3u8Test {
     
     @Test
     public void download_masterM3u8_and_its_files() throws IOException, InterruptedException{
-        MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/master.m3u8", "test_m3u8/result_master_m3u8");
+        MasterDownloader masterDownloader = new MasterDownloader("http://127.0.0.1:1234/subdir/master.m3u8", "test_m3u8/result_master_m3u8");
         masterDownloader.downloadAndParse();
         List<MediaDownloader> mediaDownloaders = masterDownloader.findResources("group_name1", null, 543144);
         for(MediaDownloader downloader : mediaDownloaders){

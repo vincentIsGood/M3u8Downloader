@@ -30,7 +30,7 @@ public class MediaM3u8Test {
 
     @Test
     public void download_from_mediaM3u8_no_errors() throws IOException, InterruptedException{
-        MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/video1/media.m3u8", "test_m3u8/result_media_m3u8");
+        MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/subdir/video1/media.m3u8", "test_m3u8/result_media_m3u8");
         mediaDownloader.downloadAndParse();
         mediaDownloader.findResources();
         mediaDownloader.downloadAllResources();
@@ -48,7 +48,7 @@ public class MediaM3u8Test {
     @Test
     public void download_from_mediaM3u8_with_threads() throws IOException, InterruptedException{
         MediaDownloader.NUM_THREADS = 4;
-        MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/video1/media.m3u8", "test_m3u8/result_media_m3u8_threaded");
+        MediaDownloader mediaDownloader = new MediaDownloader("http://127.0.0.1:1234/subdir/video1/media.m3u8", "test_m3u8/result_media_m3u8_threaded");
         mediaDownloader.downloadAndParse();
         mediaDownloader.findResources();
         mediaDownloader.downloadAllResources();

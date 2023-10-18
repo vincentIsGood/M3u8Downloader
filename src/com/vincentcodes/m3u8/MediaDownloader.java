@@ -156,10 +156,14 @@ public class MediaDownloader {
                 finalPath = finalPaths.pop();
             }
             
-            if(DownloadUtils.isRemote(finalPath)){
-                DownloadUtils.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
-            }else DownloadUtils.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
-            
+            try{
+                if(DownloadUtils.isRemote(finalPath)){
+                    DownloadUtils.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
+                }else DownloadUtils.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
+            }catch(UncheckedIOException e){
+                System.out.println("[-] Download Error: " + e.getMessage());
+            }
+
             lock.lock();
             try{
                 noFilesDownloaded++;
