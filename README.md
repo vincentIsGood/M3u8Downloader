@@ -5,19 +5,54 @@ M3u8 Downloader does not only download m3u8 file. It downloads media m3u8 and it
 $ java -jar m3u8downloader-v3.1.2.jar --help
 m3u8downloader: help menu
 Usage m3u8downloader [options] <url / file>
-    --help         show this help
-    --master       The m3u8 file you are inputing in is a master playlist
-    --outfolder    Set output folder to this location. If url is a local file, then the m3u8 file MUST locate INSIDE the outfolder
-    -o             alias for '--outfolder'
-    --bandwidth    Set the bandwidth to start downloading media playlists from master playlist, use ',' to separate multiple bandwidths you wanna select (eg. -b 123,324)
-    -b             alias for '--bandwidth'
-    --audioid      Use audioId to narrow down the search result of variant streams
-    -aid           alias for '--audioid'
-    --videoid      Use videoId to narrow down the search result of variant streams
-    -vid           alias for '--videoid'
-    --progressive  download one ts file from each media at a time.
-    --threads      set number of threads to be used, default = 1.
-    --unique       unique names for ts files
+    --help                  Show this help
+    -h
+    --master                The m3u8 file you are inputing in is a master playlist
+    --outfolder             Set output folder to this location
+    -o
+    --bandwidth             Set the bandwidth to start downloading media playlists from master playlist, use ',' to separate multiple bandwidths you wanna select (eg. -b 123,324)
+    -b
+    --audioid               Use audioId to narrow down the search result of variant streams
+    -aid
+    --videoid               Use videoid to narrow down the search result of variant streams
+    -vid
+    --progressive           Download one ts file from each media at a time
+    --threads               Set number of threads to be used (default = 1)
+    -t
+    --unique                Unique names for ts files
+    --optionsfile file.json Custom options in json
+    -options
+```
+
+## Custom headers and query params
+Define json file to customize params and headers you send to remote server.
+
+Example [`test_m3u8/download_options.json`](test_m3u8/download_options.json)
+```json
+{
+    "ts_options": {
+        "queries": {
+            "asd": "help",
+            "key": "value"
+        },
+        "headers": {
+            "X-Test-You": "and",
+            "X-Test-Me": "nice"
+        }
+    },
+    "media_options": {
+        "queries": {
+            "asd": "help",
+            "key": "value"
+        }
+    },
+    "master_options": {
+        "headers": {
+            "X-Test-You": "and",
+            "X-Test-Me": "nice"
+        }
+    }
+}
 ```
 
 ## Manually Compile

@@ -15,6 +15,7 @@ import com.vincentcodes.m3u8.types.Media;
 import com.vincentcodes.m3u8.types.Stream;
 
 public class MasterDownloader {
+    public static DownloadOptions DOWNLOAD_OPTIONS;
 
     private String baseUrl = "";
     private String pathDirUrl = "";
@@ -24,6 +25,8 @@ public class MasterDownloader {
     private MasterPlaylist master;
     private MasterPlaylist localMaster;
     private int mediaM3u8Count;
+
+    private DownloadUtils downloader;
 
     /**
      * @param url remote or local resource (note: if it is a local resource, 
@@ -37,13 +40,14 @@ public class MasterDownloader {
             pathDirUrl = DownloadUtils.getPathDir(url);
         }
         this.outfolder = DownloadUtils.createFolder(outfolder);
+        downloader = new DownloadUtils(DOWNLOAD_OPTIONS);
     }
 
     public MasterPlaylist downloadAndParse(){
         String m3u8Content;
         if(DownloadUtils.isLocalFile(url)){
             m3u8Content = new String(DownloadUtils.readLocalFile(url));
-        }else m3u8Content = new String(DownloadUtils.downloadNoDuplicate(url, baseUrl, outfolder, true));
+        }else m3u8Content = new String(downloader.downloadNoDuplicate(url, baseUrl, outfolder, true));
         System.out.println("[*] Parsing m3u8 file...");
         master = MasterPlaylistParser.parse(m3u8Content);
         return master;

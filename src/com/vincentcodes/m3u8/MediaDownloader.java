@@ -17,6 +17,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.vincentcodes.m3u8.types.KeyTag;
 
 public class MediaDownloader {
+    public static DownloadOptions TS_DOWNLOAD_OPTIONS;
+    public static DownloadOptions DOWNLOAD_OPTIONS;
+
     public static int NUM_THREADS = 1;
     public static boolean UNIQUE_TS_NAMES = false;
     private static ExecutorService executorService;
@@ -60,6 +63,9 @@ public class MediaDownloader {
     private int totalFilesNeeded = 0;
     private int noFilesDownloaded = 0;
     private int tasksSubmitted = 0;
+
+    private DownloadUtils downloader;
+    private DownloadUtils tsDownloader;
     
     /**
      * @param url remote or local resource (note: if it is a local resource, 
@@ -75,6 +81,8 @@ public class MediaDownloader {
         this.outfolder = DownloadUtils.createFolder(outfolder);
         finalPaths = new ArrayDeque<>();
         finalPathsToFilename = new HashMap<>();
+        downloader = new DownloadUtils(DOWNLOAD_OPTIONS);
+        tsDownloader = new DownloadUtils(TS_DOWNLOAD_OPTIONS);
 
         lock = new ReentrantLock();
         doneDownloadNotif = lock.newCondition();
@@ -87,7 +95,7 @@ public class MediaDownloader {
         String m3u8Content;
         if(DownloadUtils.isLocalFile(url)){
             m3u8Content = new String(DownloadUtils.readLocalFile(url));
-        }else m3u8Content = new String(DownloadUtils.downloadNoDuplicate(url, baseUrl, outfolder,  null, true));
+        }else m3u8Content = new String(downloader.downloadNoDuplicate(url, baseUrl, outfolder,  null, true));
         System.out.println("[*] Parsing m3u8 file...");
         media = MediaPlaylistParser.parse(m3u8Content);
         if(media.segments.size() == 0){
@@ -158,8 +166,8 @@ public class MediaDownloader {
             
             try{
                 if(DownloadUtils.isRemote(finalPath)){
-                    DownloadUtils.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
-                }else DownloadUtils.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
+                    tsDownloader.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
+                }else tsDownloader.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
             }catch(UncheckedIOException e){
                 System.out.println("[-] Download Error: " + e.getMessage());
             }

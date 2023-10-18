@@ -1,18 +1,27 @@
 package com.vincentcodes.m3u8;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
+import com.vincentcodes.json.CannotMapToObjectException;
+import com.vincentcodes.json.JsonObject;
+import com.vincentcodes.json.ObjectMapper;
+import com.vincentcodes.json.ObjectMapperConfig;
+import com.vincentcodes.json.parser.JsonParser;
+import com.vincentcodes.json.parser.UnexpectedToken;
 import com.vincentcodes.util.commandline.ArgumentObjectMapper;
 import com.vincentcodes.util.commandline.Command;
 import com.vincentcodes.util.commandline.ObjectMapperParseResult;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         handleArgs(args);
         MediaDownloader.stopExecutor();
     }
 
-    private static void handleArgs(String[] args){
+    private static void handleArgs(String[] args) throws FileNotFoundException, IOException, CannotMapToObjectException, UnexpectedToken{
         ObjectMapperParseResult<CmdLineOptions> parseResult = ArgumentObjectMapper.parseToObject(args, CmdLineOptions.class);
         CmdLineOptions cmdOptions = parseResult.result;
         Command cmd = parseResult.command;
@@ -26,6 +35,25 @@ public class Main {
 
         MediaDownloader.UNIQUE_TS_NAMES = cmdOptions.unique;
         MediaDownloader.NUM_THREADS = cmdOptions.threads;
+
+        DownloadOptionsObject options = null;
+        if(cmdOptions.optionsfile != null){
+            System.out.println("[+] Parsing download options json: " + cmdOptions.optionsfile);
+            ObjectMapper mapper = new ObjectMapper(
+                new ObjectMapperConfig.Builder()
+                    .setAllowMissingProperty(true)
+                    .setDebugModeOn(true)
+                    .build());
+            try(FileInputStream fis = new FileInputStream(cmdOptions.optionsfile)){
+                String jsonContent = new String(fis.readAllBytes());
+                options = mapper.jsonToObject(jsonContent, DownloadOptionsObject.class);
+                MasterDownloader.DOWNLOAD_OPTIONS = options.master_options;
+                MediaDownloader.TS_DOWNLOAD_OPTIONS = options.ts_options;
+                MediaDownloader.DOWNLOAD_OPTIONS = options.media_options;
+                System.out.println("[*] Json Parsed. The following shows the result: ");
+                System.out.println(options);
+            }
+        }
         
         if(cmdOptions.master){
             handleMasterM3u8(cmdOptions, url);

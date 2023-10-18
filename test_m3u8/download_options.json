@@ -1,0 +1,24 @@
+{
+    "ts_options": {
+        "queries": {
+            "asd": "help",
+            "key": "value"
+        },
+        "headers": {
+            "X-Test-You": "and",
+            "X-Test-Me": "nice"
+        }
+    },
+    "media_options": {
+        "queries": {
+            "asd": "help",
+            "key": "value"
+        }
+    },
+    "master_options": {
+        "headers": {
+            "X-Test-You": "and",
+            "X-Test-Me": "nice"
+        }
+    }
+}

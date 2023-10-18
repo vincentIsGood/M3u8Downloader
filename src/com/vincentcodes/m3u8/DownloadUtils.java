@@ -16,20 +16,26 @@ import java.util.Map;
 public class DownloadUtils {
     public static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.83 Safari/537.36";
 
-    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, boolean openLocalFile){
+    public DownloadOptions downloadOptions;
+
+    public DownloadUtils(DownloadOptions downloadOptions){
+        this.downloadOptions = downloadOptions;
+    }
+
+    public void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, boolean openLocalFile){
         downloadNoDuplicateNoReturn(url, baseUrl, outFolder, null, openLocalFile);
     }
-    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename){
+    public void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename){
         downloadNoDuplicateNoReturn(url, baseUrl, outFolder, givenFilename, false);
     }
-    public static void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
+    public void downloadNoDuplicateNoReturn(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
         downloadNoDuplicate(url, baseUrl, outFolder, givenFilename, openLocalFile);
     }
 
-    public static byte[] downloadNoDuplicate(String url, String baseUrl, String givenFilename, String outFolder){
+    public byte[] downloadNoDuplicate(String url, String baseUrl, String givenFilename, String outFolder){
         return downloadNoDuplicate(url, baseUrl, outFolder, givenFilename, false);
     }
-    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, boolean openLocalFile){
+    public byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, boolean openLocalFile){
         return downloadNoDuplicate(url, baseUrl, outFolder, null, openLocalFile);
     }
     /**
@@ -39,8 +45,7 @@ public class DownloadUtils {
      * OR partial abs path "/asdasd.ts"
      * @param baseUrl (eg. "http://127.0.0.1:1234/subdir/master.m3u8" => base url "http://127.0.0.1:1234/")
      */
-    public static byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
-        System.out.println("url: " + url);
+    public byte[] downloadNoDuplicate(String url, String baseUrl, String outFolder, String givenFilename, boolean openLocalFile){
         if(isRemoteAndNotLocal(url, baseUrl, outFolder, givenFilename)){
             String localFilename = givenFilename != null? givenFilename : getFilenameFromUrl(url);
             if(isRemote(url))
@@ -74,15 +79,18 @@ public class DownloadUtils {
      * Do not download large files.
      * @return null if error occured
      */
-    public static byte[] downloadFile(String url){
+    public byte[] downloadFile(String url){
         return downloadFile(url, "", null);
     }
-    public static byte[] downloadFile(String url, String outFolder){
+    public byte[] downloadFile(String url, String outFolder){
         return downloadFile(url, outFolder, null);
     }
-    public static byte[] downloadFile(String url, String outFolder, String givenFilename){
+    public byte[] downloadFile(String url, String outFolder, String givenFilename){
         byte[] fileContent = null;
         try{
+            if(downloadOptions != null && downloadOptions.queries != null){
+                url = UrlUtils.addQueryParamsToURL(url, downloadOptions.queries);
+            }
             URL resourceUrl = new URL(url);
             String filename = getFilenameFromUrl(resourceUrl);
             if(givenFilename != null) filename = givenFilename;
@@ -91,6 +99,12 @@ public class DownloadUtils {
             System.out.println("[+] Downloading file: '" + outFolder + filename + "' (from "+ url +")");
             HttpURLConnection conn = (HttpURLConnection)resourceUrl.openConnection();
             conn.setRequestProperty("User-Agent", USER_AGENT);
+
+            if(downloadOptions != null && downloadOptions.headers != null){
+                for(Map.Entry<String, String> header : downloadOptions.headers.entrySet()){
+                    conn.addRequestProperty(header.getKey(), header.getKey());
+                }
+            }
 
             if(!outputFile.exists()){
                 outputFile.createNewFile();
@@ -114,16 +128,18 @@ public class DownloadUtils {
         }
         return fileContent;
     }
-    public static void downloadFileNoReturn(String url){
+    public void downloadFileNoReturn(String url){
         downloadFile(url, "");
     }
-    public static void downloadFileNoReturn(String url, String outFolder){
+    public void downloadFileNoReturn(String url, String outFolder){
         downloadFile(url, outFolder, null);
     }
-    public static void downloadFileNoReturn(String url, String outFolder, String givenFilename){
+    public void downloadFileNoReturn(String url, String outFolder, String givenFilename){
         downloadFile(url, outFolder, givenFilename);
     }
 
+
+    // -------------- Pure Utils -------------- //
     /**
      * Do not read large files
      * @return null if error occured
@@ -191,6 +207,11 @@ public class DownloadUtils {
             return path.substring(path.lastIndexOf('/', path.indexOf('?'))+1, path.indexOf('?'));
         return path.substring(path.lastIndexOf('/')+1);
     }
+
+    /**
+     * "https://dsadsa/asd" => "https://dsadsa"
+     * "https://dsadsa/asd/dsa/dsa/dsad" => "https://dsadsa/asd/dsa/dsa"
+     */
     public static String getPathExcludeName(String path){
         if(path.lastIndexOf('/') == -1){
             if(path.contains("?"))
