@@ -1,11 +1,12 @@
 @echo off
 
 set jarname=m3u8downloader-v4.1.0
-set structure=com/vincentcodes/m3u8/*
+set structure=com/vincentcodes/*
 
 :::: with Manifest
 :: Include the libraries into the jar
-:: cp -r lib/com/ .
+cp -r lib/com/ classes
+cp -r lib/org/ classes
 
 cd classes
 jar -cvfm %jarname%.jar Manifest.txt %structure%
