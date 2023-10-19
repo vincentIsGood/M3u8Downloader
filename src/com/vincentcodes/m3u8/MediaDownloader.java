@@ -22,6 +22,8 @@ public class MediaDownloader {
 
     public static int NUM_THREADS = 1;
     public static boolean UNIQUE_TS_NAMES = false;
+    public static int MAX_RETRIES = 5;
+
     private static ExecutorService executorService;
 
     public static void initExecutor(){
@@ -59,6 +61,7 @@ public class MediaDownloader {
      * finalPath is a term used to denote "remote download path / link"
      */
     private Deque<String> finalPaths; // queue used to enable pause, resume download
+    private Map<String, Integer> pathRetries;
     private Map<String, String> finalPathsToFilename;
     private int totalFilesNeeded = 0;
     private int noFilesDownloaded = 0;
@@ -80,6 +83,7 @@ public class MediaDownloader {
         if(DownloadUtils.isAbsolute(url)) baseUrl = DownloadUtils.getBaseUrl(url);
         this.outfolder = DownloadUtils.createFolder(outfolder);
         finalPaths = new ArrayDeque<>();
+        pathRetries = new HashMap<>();
         finalPathsToFilename = new HashMap<>();
         downloader = new DownloadUtils(DOWNLOAD_OPTIONS);
         tsDownloader = new DownloadUtils(TS_DOWNLOAD_OPTIONS);
@@ -163,13 +167,29 @@ public class MediaDownloader {
             synchronized(finalPaths){
                 finalPath = finalPaths.pop();
             }
-            
-            try{
-                if(DownloadUtils.isRemote(finalPath)){
-                    tsDownloader.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
-                }else tsDownloader.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
-            }catch(UncheckedIOException e){
-                System.out.println("[-] Download Error: " + e.getMessage());
+
+            boolean isRetry = pathRetries.containsKey(finalPath);
+            boolean overRetryLimit = isRetry && pathRetries.get(finalPath) > MAX_RETRIES;
+            if(!overRetryLimit){
+                if(isRetry){
+                    System.out.println("[*] The next download is attempt: " + pathRetries.get(finalPath));
+                }
+
+                try{
+                    if(DownloadUtils.isRemote(finalPath)){
+                        tsDownloader.downloadFile(finalPath, outfolder, finalPathsToFilename.get(finalPath));
+                    }else tsDownloader.downloadNoDuplicateNoReturn(finalPath, baseUrl, outfolder, finalPathsToFilename.get(finalPath));
+                }catch(UncheckedIOException e){
+                    System.out.println("[-] Download Error: " + e.getMessage());
+                    synchronized(finalPaths){
+                        finalPaths.add(finalPath);
+                        pathRetries.put(finalPath, pathRetries.getOrDefault(finalPath, 0)+1);
+                    }
+                    return; // do not count it as downloaded
+                }
+                pathRetries.remove(finalPath);
+            }else{
+                System.out.println("[-] Over max retry limit for: " + finalPath);
             }
 
             lock.lock();
@@ -202,6 +222,10 @@ public class MediaDownloader {
             }
         }finally{
             lock.unlock();
+        }
+        if(pathRetries.size() > 0){
+            noFilesDownloaded -= pathRetries.size();
+            System.out.println("[!] These files cannot be downloaded: " + pathRetries.keySet());
         }
         System.out.println("[*] For '"+ getOutPath() +"', progress: "+ noFilesDownloaded +"/"+ totalFilesNeeded + " ("+ (noFilesDownloaded/(double)totalFilesNeeded)*100 +"%)");
         return;
