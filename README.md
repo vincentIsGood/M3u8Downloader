@@ -24,7 +24,7 @@ Usage m3u8downloader [options] <url / file>
     -options
 ```
 
-## Custom headers and query params
+## Options File: Custom headers and query params
 Define json file to customize params and headers you send to remote server.
 
 Example [`test_m3u8/download_options.json`](test_m3u8/download_options.json)
@@ -55,6 +55,26 @@ Example [`test_m3u8/download_options.json`](test_m3u8/download_options.json)
 }
 ```
 
+Run jar with the options file:
+```sh
+java -jar m3u8downloader-vX.Y.Z.jar -o dl -options test_m3u8/download_options.json http://127.0.0.1/media.m3u8
+```
+
+Requests to be sent according to the above option file:
+```
+GET /media.m3u8?asd=help&key=value HTTP/1.1
+Host: 127.0.0.1
+User-Agent: example
+Date: ...
+
+GET /example_001.ts?asd=help&key=value HTTP/1.1
+Host: 127.0.0.1
+User-Agent: example
+Date: ...
+X-Test-You: and
+X-Test-Me: nice
+```
+
 ## Manually Compile
 1. Compile the code using the bat file `DEV_compile.bat`
 2. After running `DEV_GetJar.bat`, a jar file named `m3u8downloader-vX.Y.Z.jar` is created
@@ -65,15 +85,15 @@ Example [`test_m3u8/download_options.json`](test_m3u8/download_options.json)
 ### Examples
 To find available bandwidths from master.m3u8:
 ```sh
-m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8
+java -jar m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8
 ```
 
 To download *all* media m3u8 files and its related segments with a provided bandwidth:
 ```sh
-m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8 --bandwidth 12345
+java -jar m3u8downloader-vX.Y.Z.jar --outfolder output/ --master http://127.0.0.1/master.m3u8 --bandwidth 12345
 ```
 
 To download a media m3u8 with its segment files:
 ```sh
-m3u8downloader-vX.Y.Z.jar --outfolder output/ http://127.0.0.1/media.m3u8
+java -jar m3u8downloader-vX.Y.Z.jar --outfolder output/ http://127.0.0.1/media.m3u8
 ```
