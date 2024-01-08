@@ -52,6 +52,8 @@ public class Main {
                 System.out.println(options);
             }
         }
+
+        MediaDownloader.normalizePath = cmdOptions.normalizePath;
         
         if(cmdOptions.master){
             handleMasterM3u8(cmdOptions, url);

@@ -3,6 +3,9 @@ package com.vincentcodes.m3u8;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -23,6 +26,8 @@ public class MediaDownloader {
     public static int NUM_THREADS = 1;
     public static boolean UNIQUE_TS_NAMES = false;
     public static int MAX_RETRIES = 5;
+
+    public static boolean normalizePath;
 
     private static ExecutorService executorService;
 
@@ -121,13 +126,19 @@ public class MediaDownloader {
         }
         System.out.println("[*] Number of segments to download: " + media.segments.size());
         for(String seg : media.segments){
-            // String finalPath = DownloadUtils.isRemote(seg)? seg : DownloadUtils.getFilenameFromPath(seg);
             // eg. /segment.ts == example.com/segment.ts
             // eg.  segment.ts == example.com/media/segment.ts
             String finalPath = resolveFinalPath(urlDirPath, seg);
             if(finalPaths.size() > 0 && finalPaths.peekLast().equals(finalPath)){
                 // Skip duplicating ts files
                 continue;
+            }
+            if(normalizePath && DownloadUtils.isRemote(finalPath)){
+                try {
+                    finalPath = new URL(finalPath).toURI().normalize().toString();
+                } catch (MalformedURLException | URISyntaxException e) {
+                    e.printStackTrace();
+                }
             }
             finalPaths.add(finalPath);
             if(UNIQUE_TS_NAMES)
@@ -250,6 +261,16 @@ public class MediaDownloader {
         for(int i = 0; i < media.segments.size(); i++){
             String seg = media.segments.get(i);
             String finalPath = resolveFinalPath(urlDirPath, seg);
+            
+            if(normalizePath && DownloadUtils.isRemote(finalPath)){
+                try {
+                    finalPath = new URL(finalPath).toURI().normalize().toString();
+                } catch (MalformedURLException | URISyntaxException e) {
+                    e.printStackTrace();
+                }
+            }
+            finalPaths.add(finalPath);
+
             if(previousPath.equals(finalPath)){
                 // encounter duplicate ts file -> combine the duration ('cause they maybe bounded by BYTERANGE)
                 int lastIndex = newMedia.segDurations.size()-1;
@@ -306,6 +327,8 @@ public class MediaDownloader {
     }
 
     /**
+     * @param urlDirPath eg. ("path/to/dir/", "https://example.com/dir/")
+     * @param seg eg. ("path/to/asd.ts", "/remote/fullpath/to/asd.ts", "../asd.ts")
      * @return If it's a local file, it stays that way. 
      * If it's a remote file, absolute path is returned
      */

@@ -33,6 +33,9 @@ public class CmdLineOptions {
     @CmdOption(shortForm = "options", parameterDescription = "file.json", description = "Custom options in json")
     public String optionsfile;
 
+    @CmdOption(value = "normalize", shortForm = "norm", description = "Normalize paths (eg. a/b/c/d/../e -> a/b/c/e, ./a -> a)")
+    public boolean normalizePath;
+
     // @CmdOption(description = "Live download (this involves downloading the same m3u8 media file over and over again)")
     // public boolean live;
 }
