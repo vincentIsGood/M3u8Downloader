@@ -253,6 +253,7 @@ public class MediaDownloader {
         newMedia.disSequence = media.disSequence;
         newMedia.doesPlaylistEnds = media.doesPlaylistEnds;
         for(KeyTag key : media.keys.values()){
+            if(key.getMethod().trim().toLowerCase().equals("none")) continue;
             Map<String, String> attributes = key.getAttributes();
             attributes.put("URI", DownloadUtils.getFilenameFromPath(key.getURI()));
             KeyTag newKey = new KeyTag(attributes);
