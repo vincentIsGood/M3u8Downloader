@@ -121,6 +121,7 @@ public class MediaDownloader {
         int counter = 0;
         System.out.println("[*] Number of keys to download: " + media.keys.size());
         for(KeyTag key : media.keys.values()){
+            if(key.getMethod().trim().toLowerCase().equals("none")) continue;
             String finalPath = DownloadUtils.isRemote(key.getURI())? key.getURI() : DownloadUtils.getFilenameFromUrl(key.getURI());
             finalPaths.add(finalPath);
         }
