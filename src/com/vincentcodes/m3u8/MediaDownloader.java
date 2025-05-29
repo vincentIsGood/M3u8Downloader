@@ -6,6 +6,8 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -143,7 +145,7 @@ public class MediaDownloader {
             }
             finalPaths.add(finalPath);
             if(UNIQUE_TS_NAMES)
-                finalPathsToFilename.put(finalPath, (counter++) + "_" + DownloadUtils.getFilenameFromPath(seg));
+                finalPathsToFilename.put(finalPath, (counter++) + "_" + URLEncoder.encode(DownloadUtils.getFilenameFromPath(seg), StandardCharsets.UTF_8));
             else finalPathsToFilename.put(finalPath, DownloadUtils.getFilenameFromPath(seg));
         }
         totalFilesNeeded = finalPaths.size();
