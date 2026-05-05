@@ -5,12 +5,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 // TODO: fix the dirty code
 public class DownloadUtils {
@@ -113,8 +115,14 @@ public class DownloadUtils {
             if(conn.getResponseCode() != 200){
                 throw new IOException("Bad response code: " + conn.getResponseCode());
             }
+            
+            InputStream is = conn.getInputStream();
+            String encoding = conn.getContentEncoding();
+            if(encoding != null && encoding.equalsIgnoreCase("gzip")){
+                is = new GZIPInputStream(is);
+            }
 
-            try(BufferedInputStream in = new BufferedInputStream(conn.getInputStream());
+            try(BufferedInputStream in = new BufferedInputStream(is);
             FileOutputStream fis = new FileOutputStream(outputFile)){
                 fileContent = in.readAllBytes();
                 fis.write(fileContent);
