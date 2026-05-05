@@ -102,7 +102,7 @@ public class DownloadUtils {
 
             if(downloadOptions != null && downloadOptions.headers != null){
                 for(Map.Entry<String, String> header : downloadOptions.headers.entrySet()){
-                    conn.addRequestProperty(header.getKey(), header.getKey());
+                    conn.addRequestProperty(header.getKey(), header.getValue());
                 }
             }
 
